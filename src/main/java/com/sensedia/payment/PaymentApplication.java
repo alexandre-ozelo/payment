@@ -29,13 +29,17 @@ public class PaymentApplication {
       if (conf.succeeded()) {
         val config = conf.result();
 
-        val metadata = new JsonObject().put("host",
-          StringUtil.isNullOrEmpty(config.getString("MONGO_HOST")) ? "localhost"
-            : config.getString("MONGO_HOST"))
-          .put("port", Objects.isNull(config.getInteger("MONGO_PORT")) ? 27017
-            : config.getInteger("MONGO_PORT"));
+        val metadata = new JsonObject()
+            .put("mongoHost", StringUtil.isNullOrEmpty(config.getString("MONGO_HOST")) ? "localhost"
+                : config.getString("MONGO_HOST"))
+            .put("mongoPort", Objects.isNull(config.getInteger("MONGO_PORT")) ? 27017
+                : config.getInteger("MONGO_PORT"))
+            .put("kafkaHost", StringUtil.isNullOrEmpty(config.getString("KAFKA_HOST")) ? "localhost"
+                : config.getString("KAFKA_HOST"))
+            .put("kafkaPort", Objects.isNull(config.getInteger("KAFKA_PORT")) ? 9092
+                : config.getInteger("KAFKA_PORT"));
 
-        log.info("Database connection data: {}", metadata.toString());
+        log.info("Enviroment data: {}", metadata.toString());
 
         val deploymentOptions = new DeploymentOptions();
         deploymentOptions.setConfig(metadata);

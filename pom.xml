@@ -46,7 +46,7 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>com.sensedia.ecommerce.PaymentApplication</Main-Class>
+                    <Main-Class>com.sensedia.payment.PaymentApplication</Main-Class>
                   </manifestEntries>
                 </transformer>
                 <transformer
