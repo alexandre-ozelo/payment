@@ -53,7 +53,7 @@ public class PaymentWorker extends AbstractVerticle {
       if (done.succeeded()) {
         log.info("Success send message to payment approval: {}", paymentOk);
       } else {
-        log.error("Error send message to payment approval", done.cause());
+        log.error("Error send message to payment approval: {}", done.cause().getMessage());
       }
     });
 

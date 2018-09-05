@@ -28,7 +28,7 @@
               <transformers>
                 <transformer>
                   <manifestEntries>
-                    <Main-Class>com.sensedia.ecommerce.PaymentApplication</Main-Class>
+                    <Main-Class>com.sensedia.payment.PaymentApplication</Main-Class>
                   </manifestEntries>
                 </transformer>
                 <transformer />
