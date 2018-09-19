@@ -1,9 +1,12 @@
 package com.sensedia.payment.infra.verticles;
 
+import com.sensedia.payment.domain.data.Payment;
 import com.sensedia.payment.infra.kafka.Consumer;
 import com.sensedia.payment.infra.kafka.Producer;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.MongoClient;
 import io.vertx.kafka.client.producer.KafkaProducerRecord;
 import java.security.SecureRandom;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +14,7 @@ import lombok.val;
 
 @Slf4j
 public class PaymentWorker extends AbstractVerticle {
+
 
   public void start() {
     val consumer = Consumer
@@ -21,8 +25,7 @@ public class PaymentWorker extends AbstractVerticle {
       log.info("Processing key={}, value={}, partition={}, offset={}", record.key(),
           record.value(), record.partition(), record.offset());
 
-      SecureRandom secureRandom = new SecureRandom();
-      this.writeMessage(secureRandom.nextBoolean(), record.key());
+      this.writeMessage(record.key(), record.value());
 
       consumer.commit(ar -> {
         if (ar.succeeded()) {
@@ -41,21 +44,41 @@ public class PaymentWorker extends AbstractVerticle {
     });
   }
 
-  private void writeMessage(Boolean paymentOk, String id) {
-    val producer = Producer.configureProducer(this.vertx, config().getString("kafkaHost"),
-        config().getInteger("kafkaPort").toString());
-    val record =
-        KafkaProducerRecord
-            .create("payment-response-topic", id,
-                new JsonObject().put("paymentApproval", paymentOk));
+  private void writeMessage(String id, JsonObject payment) {
+    val config = new JsonObject()
+        .put("host", config().getString("mongoHost"))
+        .put("port", config().getInteger("mongoPort"))
+        .put("db_name", "payment");
 
-    producer.write(record, done -> {
-      if (done.succeeded()) {
-        log.info("Success send message to payment approval: {}", paymentOk);
+    val secureRandom = new SecureRandom();
+    val paid = secureRandom.nextBoolean();
+    val paymentObj = Json.decodeValue(payment.toString(), Payment.class);
+    paymentObj.setPaid(paid);
+
+    val client = MongoClient.createShared(vertx, config);
+    client.save("payments", new JsonObject(Json.encode(paymentObj)), res -> {
+      if (res.succeeded()) {
+
+        log.info("Saved paynment with id " + id);
+
+        val producer = Producer.configureProducer(this.vertx, config().getString("kafkaHost"),
+            config().getInteger("kafkaPort").toString());
+        val record =
+            KafkaProducerRecord
+                .create("payment-response-topic", id,
+                    new JsonObject().put("paymentApproval", paid));
+
+        producer.write(record, done -> {
+          if (done.succeeded()) {
+            log.info("Success send message to payment approval: {}", paid);
+          } else {
+            log.error("Error send message to payment approval: {}", done.cause().getMessage());
+          }
+        });
       } else {
-        log.error("Error send message to payment approval: {}", done.cause().getMessage());
+        log.error("Error saving payment: {}, with cause: {}", payment,
+            res.cause().getMessage());
       }
     });
-
   }
 }
